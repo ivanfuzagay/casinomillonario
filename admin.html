@@ -164,10 +164,10 @@
         <div class="current-info" id="currentInfo">
             <p><strong>Número actual:</strong> <span id="currentPhone">Cargando...</span></p>
             <p><strong>Mensaje actual:</strong> <span id="currentMessage">Cargando...</span></p>
-            <p><strong>Cambios realizados:</strong> <span id="changeCount" style="color: #38ff00; font-size: 1.2em; font-weight: bold;">0</span> <button id="resetBtn" class="reset-btn">Resetear</button></p>
+            <p><strong>Cambios realizados:</strong> <span id="changeCount" style="color: #38ff00; font-size: 1.2em; font-weight: bold;">0</span> <button type="button" id="resetBtn" class="reset-btn">Resetear</button></p>
         </div>
 
-        <form id="adminForm">
+        <form id="adminForm" onsubmit="return false;">
             <div class="form-group">
                 <label for="password">Contraseña de Administrador:</label>
                 <input type="password" id="password" required>
@@ -194,6 +194,9 @@
         async function loadCurrentInfo() {
             try {
                 const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
                 
                 document.getElementById('currentPhone').textContent = data.phone || 'No disponible';
@@ -202,122 +205,144 @@
             } catch (error) {
                 console.error('Error al cargar información:', error);
                 document.getElementById('currentPhone').textContent = 'Error al cargar';
+                document.getElementById('currentMessage').textContent = 'Error al cargar';
             }
         }
 
-        // Manejar envío del formulario
-        document.getElementById('adminForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const messageDiv = document.getElementById('message');
-            const phone = document.getElementById('phone').value.trim();
-            const password = document.getElementById('password').value;
-
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Actualizando...';
-            messageDiv.className = 'message';
-            messageDiv.style.display = 'none';
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        phone: phone,
-                        password: password
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    messageDiv.className = 'message success';
-                    messageDiv.textContent = data.message || '¡Número actualizado correctamente!';
-                    messageDiv.style.display = 'block';
+        // Esperar a que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            // Manejar envío del formulario
+            const adminForm = document.getElementById('adminForm');
+            if (adminForm) {
+                adminForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     
-                    // Actualizar contador inmediatamente si viene en la respuesta
-                    if (data.changeCount !== undefined) {
-                        document.getElementById('changeCount').textContent = data.changeCount;
+                    const submitBtn = document.getElementById('submitBtn');
+                    const messageDiv = document.getElementById('message');
+                    const phone = document.getElementById('phone').value.trim();
+                    const password = document.getElementById('password').value;
+
+                    if (!phone || !password) {
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Por favor completa todos los campos';
+                        messageDiv.style.display = 'block';
+                        return;
                     }
-                    
-                    // Recargar información actual
-                    setTimeout(() => {
-                        loadCurrentInfo();
-                    }, 1000);
-                } else {
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = data.error || 'Error al actualizar';
-                    messageDiv.style.display = 'block';
-                }
-            } catch (error) {
-                messageDiv.className = 'message error';
-                messageDiv.textContent = 'Error de conexión. Verifica que estés en Vercel.';
-                messageDiv.style.display = 'block';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Actualizar Número';
-            }
-        });
 
-        // Cargar información al iniciar
-        loadCurrentInfo();
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Actualizando...';
+                    messageDiv.className = 'message';
+                    messageDiv.style.display = 'none';
 
-        // Manejar reset del contador
-        document.getElementById('resetBtn').addEventListener('click', async () => {
-            const password = document.getElementById('password').value;
-            if (!password) {
-                alert('Por favor ingresa la contraseña de administrador primero');
-                return;
-            }
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                phone: phone,
+                                password: password
+                            })
+                        });
 
-            if (!confirm('¿Estás seguro de que quieres resetear el contador a 0?')) {
-                return;
-            }
+                        const data = await response.json();
 
-            const resetBtn = document.getElementById('resetBtn');
-            const messageDiv = document.getElementById('message');
-
-            resetBtn.disabled = true;
-            resetBtn.textContent = 'Reseteando...';
-            messageDiv.className = 'message';
-            messageDiv.style.display = 'none';
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        reset: true,
-                        password: password
-                    })
+                        if (response.ok) {
+                            messageDiv.className = 'message success';
+                            messageDiv.textContent = data.message || '¡Número actualizado correctamente!';
+                            messageDiv.style.display = 'block';
+                            
+                            // Actualizar contador inmediatamente si viene en la respuesta
+                            if (data.changeCount !== undefined) {
+                                document.getElementById('changeCount').textContent = data.changeCount;
+                            }
+                            
+                            // Recargar información actual
+                            setTimeout(() => {
+                                loadCurrentInfo();
+                            }, 1000);
+                        } else {
+                            messageDiv.className = 'message error';
+                            messageDiv.textContent = data.error || 'Error al actualizar';
+                            messageDiv.style.display = 'block';
+                        }
+                    } catch (error) {
+                        console.error('Error en la petición:', error);
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Error de conexión: ' + error.message;
+                        messageDiv.style.display = 'block';
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Actualizar Número';
+                    }
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    messageDiv.className = 'message success';
-                    messageDiv.textContent = data.message || '¡Contador reseteado correctamente!';
-                    messageDiv.style.display = 'block';
-                    
-                    // Actualizar contador inmediatamente
-                    document.getElementById('changeCount').textContent = '0';
-                } else {
-                    messageDiv.className = 'message error';
-                    messageDiv.textContent = data.error || 'Error al resetear el contador';
-                    messageDiv.style.display = 'block';
-                }
-            } catch (error) {
-                messageDiv.className = 'message error';
-                messageDiv.textContent = 'Error de conexión. Verifica que estés en Vercel.';
-                messageDiv.style.display = 'block';
-            } finally {
-                resetBtn.disabled = false;
-                resetBtn.textContent = 'Resetear';
             }
+
+            // Manejar reset del contador
+            const resetBtn = document.getElementById('resetBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const password = document.getElementById('password').value;
+                    if (!password) {
+                        alert('Por favor ingresa la contraseña de administrador primero');
+                        return;
+                    }
+
+                    if (!confirm('¿Estás seguro de que quieres resetear el contador a 0?')) {
+                        return;
+                    }
+
+                    const messageDiv = document.getElementById('message');
+
+                    resetBtn.disabled = true;
+                    resetBtn.textContent = 'Reseteando...';
+                    messageDiv.className = 'message';
+                    messageDiv.style.display = 'none';
+
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                reset: true,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            messageDiv.className = 'message success';
+                            messageDiv.textContent = data.message || '¡Contador reseteado correctamente!';
+                            messageDiv.style.display = 'block';
+                            
+                            // Actualizar contador inmediatamente
+                            document.getElementById('changeCount').textContent = '0';
+                        } else {
+                            messageDiv.className = 'message error';
+                            messageDiv.textContent = data.error || 'Error al resetear el contador';
+                            messageDiv.style.display = 'block';
+                        }
+                    } catch (error) {
+                        console.error('Error en la petición:', error);
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Error de conexión: ' + error.message;
+                        messageDiv.style.display = 'block';
+                    } finally {
+                        resetBtn.disabled = false;
+                        resetBtn.textContent = 'Resetear';
+                    }
+                });
+            }
+
+            // Cargar información al iniciar
+            loadCurrentInfo();
         });
 
