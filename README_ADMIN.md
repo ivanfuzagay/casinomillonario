@@ -26,9 +26,10 @@ https://tu-dominio.vercel.app/admin.html
 ### 3. Usar el Panel
 
 1. Ingresa la contraseña de administrador (la que configuraste en `ADMIN_PASSWORD`)
-2. Ingresa el nuevo número de teléfono (sin espacios ni guiones)
-3. Opcionalmente, actualiza el mensaje de WhatsApp
-4. Haz clic en "Actualizar Número"
+2. Ingresa el nuevo número de teléfono (puedes usar cualquier formato: con espacios, guiones, paréntesis, o el símbolo +)
+3. Haz clic en "Actualizar Número"
+
+**Nota:** El mensaje de WhatsApp **NO se puede cambiar** desde el panel. Para cambiarlo, edita la variable de entorno `WHATSAPP_MESSAGE` en Vercel.
 
 ## Configuración de Persistencia con Redis (Recomendado)
 
